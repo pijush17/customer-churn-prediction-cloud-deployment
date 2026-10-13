@@ -1,0 +1,21 @@
+tenure,monthly_charges,total_charges,contract_type,internet_service,tech_support,churn
+2,85.5,171.0,Month-to-month,Fiber optic,No,1
+24,65.2,1564.8,One year,DSL,Yes,0
+5,90.1,450.5,Month-to-month,Fiber optic,No,1
+48,55.0,2640.0,Two year,DSL,Yes,0
+8,78.3,626.4,Month-to-month,Fiber optic,No,1
+36,60.5,2178.0,One year,DSL,Yes,0
+3,95.0,285.0,Month-to-month,Fiber optic,No,1
+60,50.2,3012.0,Two year,DSL,Yes,0
+12,82.4,988.8,Month-to-month,Fiber optic,No,1
+30,62.0,1860.0,One year,DSL,Yes,0
+7,88.5,619.5,Month-to-month,Fiber optic,No,1
+54,52.5,2835.0,Two year,DSL,Yes,0
+18,75.0,1350.0,One year,Fiber optic,Yes,0
+4,92.0,368.0,Month-to-month,Fiber optic,No,1
+42,58.0,2436.0,Two year,DSL,Yes,0
+10,80.0,800.0,Month-to-month,Fiber optic,No,1
+27,68.0,1836.0,One year,DSL,Yes,0
+50,54.5,2725.0,Two year,DSL,Yes,0
+6,89.0,534.0,Month-to-month,Fiber optic,No,1
+33,61.5,2029.5,One year,DSL,Yes,0
