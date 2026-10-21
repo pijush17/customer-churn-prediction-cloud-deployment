@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI
 import pandas as pd
 import joblib
@@ -28,7 +29,6 @@ def predict(
     internet_service: str,
     tech_support: str
 ):
-
     data = pd.DataFrame([{
         "tenure": tenure,
         "monthly_charges": monthly_charges,

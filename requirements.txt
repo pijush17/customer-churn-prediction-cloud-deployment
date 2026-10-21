@@ -1,7 +1,8 @@
+
 pandas
 scikit-learn
-mlflow==3.16.1
-pytest
 joblib
+mlflow
 fastapi
 uvicorn
+pytest
