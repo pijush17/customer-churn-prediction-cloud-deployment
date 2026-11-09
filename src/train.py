@@ -93,7 +93,14 @@ def main() -> None:
         mlflow.set_tag("validation_status", "PASSED")
         MODEL_PATH.parent.mkdir(exist_ok=True)
         joblib.dump(pipeline, MODEL_PATH)
-        mlflow.sklearn.log_model(pipeline, name="churn_model")
+        # The pipeline is created in this run. RandomForest serializes its reviewed
+        # scikit-learn tree storage type, which MLflow's safe skops loader requires
+        # us to explicitly allow when logging the artifact.
+        mlflow.sklearn.log_model(
+            pipeline,
+            name="churn_model",
+            skops_trusted_types=["sklearn.tree._tree.Tree"],
+        )
         print(f"\nVALIDATION PASSED\nModel saved: {MODEL_PATH}")
 
 
