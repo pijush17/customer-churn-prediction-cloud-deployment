@@ -1,4 +1,4 @@
-# MLOps Assignment 2
+# customer-churn-prediction-cloud-deployment
 
 An end-to-end Machine Learning Operations (MLOps) project demonstrating machine learning model development, experiment tracking, model artifact management, testing, Docker containerization, and workflow automation.
 
