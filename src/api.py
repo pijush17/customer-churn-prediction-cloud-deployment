@@ -8,6 +8,14 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "churn_model.pkl"
+MODEL_FEATURES = [
+    "tenure",
+    "monthly_charges",
+    "total_charges",
+    "contract_type",
+    "internet_service",
+    "tech_support",
+]
 
 app = FastAPI(
     title="Customer Churn Prediction API",
@@ -44,6 +52,16 @@ def health() -> dict[str, str]:
     return {"status": "healthy"}
 
 
+@app.get("/model-info")
+def model_info() -> dict[str, str | list[str]]:
+    """Describe the deployed model and its required input fields."""
+    return {
+        "model": "RandomForestClassifier",
+        "experiment": "Customer Churn Prediction",
+        "features": MODEL_FEATURES,
+    }
+
+
 @app.post("/predict")
 def predict(request: ChurnRequest) -> dict[str, int | str]:
     try:
@@ -54,4 +72,9 @@ def predict(request: ChurnRequest) -> dict[str, int | str]:
     return {
         "churn_prediction": churn_prediction,
         "result": "Customer likely to churn" if churn_prediction == 1 else "Customer likely to stay",
+        "recommendation": (
+            "Offer a retention plan or customer-support follow-up."
+            if churn_prediction == 1
+            else "Continue with regular customer engagement."
+        ),
     }

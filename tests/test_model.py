@@ -35,6 +35,14 @@ def test_pipeline_handles_unknown_category():
 def test_api_health_and_prediction():
     client = TestClient(app)
     assert client.get("/health").json() == {"status": "healthy"}
+    assert client.get("/model-info").json()["features"] == [
+        "tenure",
+        "monthly_charges",
+        "total_charges",
+        "contract_type",
+        "internet_service",
+        "tech_support",
+    ]
     response = client.post(
         "/predict",
         json={
@@ -48,3 +56,4 @@ def test_api_health_and_prediction():
     )
     assert response.status_code == 200
     assert response.json()["churn_prediction"] in {0, 1}
+    assert "recommendation" in response.json()

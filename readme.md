@@ -12,6 +12,14 @@ uvicorn src.api:app --host 0.0.0.0 --port 8000
 
 Open `http://127.0.0.1:8000/docs` to submit a JSON request to `POST /predict` and use `GET /health` for a service health check. The GitHub Actions workflow runs tests, validates the model against the F1 threshold, and builds the Docker image on every push and pull request. `render.yaml` provides the Docker service configuration for Render.
 
+### API endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | Container health check for local runs and Render. |
+| `GET /model-info` | Shows the deployed model type, experiment name, and required features. |
+| `POST /predict` | Returns a churn prediction and a customer-retention recommendation. |
+
 ## Table of Contents
 
 - [Project Overview](#project-overview)
