@@ -1,150 +1,101 @@
+"""Train, validate, and track the customer-churn classifier."""
 
-import os
+from pathlib import Path
+
 import joblib
-import pandas as pd
 import mlflow
 import mlflow.sklearn
-
-from sklearn.model_selection import train_test_split
+import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-)
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
 
-# 1. Configure MLflow
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
-mlflow.set_experiment("Customer Churn Prediction")
-
-# 2. Load dataset
-df = pd.read_csv("data/churn.csv")
-
-print("Dataset loaded successfully")
-print("Dataset shape:", df.shape)
-
-# 3. Separate features and target
-X = df.drop("churn", axis=1)
-y = df["churn"]
-
-# 4. Identify categorical features
-categorical_features = [
-    "contract_type",
-    "internet_service",
-    "tech_support",
-]
-
-# 5. Create preprocessing component
-preprocessor = ColumnTransformer(
-    transformers=[
-        (
-            "categorical",
-            OneHotEncoder(handle_unknown="ignore"),
-            categorical_features,
-        )
-    ],
-    remainder="passthrough",
-)
-
-# 6. Create Random Forest model
-model = RandomForestClassifier(
-    n_estimators=100,
-    max_depth=5,
-    random_state=42,
-)
-
-# 7. Combine preprocessing and model
-pipeline = Pipeline(
-    steps=[
-        ("preprocessing", preprocessor),
-        ("model", model),
-    ]
-)
-
-# 8. Split dataset
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y,
-)
-
+ROOT_DIR = Path(__file__).resolve().parents[1]
+DATA_PATH = ROOT_DIR / "data" / "churn.csv"
+MODEL_PATH = ROOT_DIR / "models" / "churn_model.pkl"
+MLFLOW_DB_PATH = ROOT_DIR / "mlflow.db"
+EXPERIMENT_NAME = "Customer Churn Prediction"
 F1_THRESHOLD = 0.80
 
-# 9. Train, evaluate, and track the model
-with mlflow.start_run():
+CATEGORICAL_FEATURES = ["contract_type", "internet_service", "tech_support"]
+REQUIRED_COLUMNS = [
+    "tenure", "monthly_charges", "total_charges", *CATEGORICAL_FEATURES, "churn"
+]
 
-    pipeline.fit(X_train, y_train)
 
-    predictions = pipeline.predict(X_test)
+def load_dataset(path: Path = DATA_PATH) -> pd.DataFrame:
+    """Load and validate the training dataset."""
+    dataset = pd.read_csv(path)
+    missing_columns = set(REQUIRED_COLUMNS) - set(dataset.columns)
+    if missing_columns:
+        raise ValueError(f"Dataset is missing columns: {sorted(missing_columns)}")
+    if dataset.empty:
+        raise ValueError("Dataset must contain at least one row.")
+    if not set(dataset["churn"].dropna().unique()).issubset({0, 1}):
+        raise ValueError("The churn target must contain only 0 and 1 values.")
+    return dataset
 
-    accuracy = accuracy_score(y_test, predictions)
-    precision = precision_score(
-        y_test, predictions, zero_division=0
+
+def build_pipeline() -> Pipeline:
+    """Create the preprocessing and classifier pipeline."""
+    preprocessor = ColumnTransformer(
+        [("categorical", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_FEATURES)],
+        remainder="passthrough",
     )
-    recall = recall_score(
-        y_test, predictions, zero_division=0
+    classifier = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+    return Pipeline([("preprocessing", preprocessor), ("model", classifier)])
+
+
+def train_and_evaluate(dataset: pd.DataFrame) -> tuple[Pipeline, dict[str, float]]:
+    """Fit the pipeline and return it with holdout-set metrics."""
+    features = dataset.drop(columns="churn")
+    target = dataset["churn"]
+    x_train, x_test, y_train, y_test = train_test_split(
+        features, target, test_size=0.2, random_state=42, stratify=target
     )
-    f1 = f1_score(
-        y_test, predictions, zero_division=0
-    )
+    pipeline = build_pipeline()
+    pipeline.fit(x_train, y_train)
+    predictions = pipeline.predict(x_test)
+    return pipeline, {
+        "accuracy": accuracy_score(y_test, predictions),
+        "precision": precision_score(y_test, predictions, zero_division=0),
+        "recall": recall_score(y_test, predictions, zero_division=0),
+        "f1_score": f1_score(y_test, predictions, zero_division=0),
+    }
 
-    # Log parameters
-    mlflow.log_param("model", "Random Forest")
-    mlflow.log_param("n_estimators", 100)
-    mlflow.log_param("max_depth", 5)
-    mlflow.log_param("test_size", 0.2)
 
-    # Log evaluation metrics
-    mlflow.log_metric("accuracy", accuracy)
-    mlflow.log_metric("precision", precision)
-    mlflow.log_metric("recall", recall)
-    mlflow.log_metric("f1_score", f1)
+def main() -> None:
+    mlflow.set_tracking_uri(f"sqlite:///{MLFLOW_DB_PATH.as_posix()}")
+    mlflow.set_experiment(EXPERIMENT_NAME)
+    dataset = load_dataset()
+    print(f"Dataset loaded successfully: {dataset.shape[0]} rows, {dataset.shape[1]} columns")
 
-    # Display evaluation results
-    print("\nModel Training Results")
-    print("----------------------")
-    print(f"Accuracy : {accuracy:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall   : {recall:.4f}")
-    print(f"F1 Score : {f1:.4f}")
-    print(f"Required F1 Score: {F1_THRESHOLD:.4f}")
+    with mlflow.start_run():
+        pipeline, metrics = train_and_evaluate(dataset)
+        mlflow.log_params(
+            {"model": "Random Forest", "n_estimators": 100, "max_depth": 5, "test_size": 0.2}
+        )
+        mlflow.log_metrics(metrics)
+        print("\nModel Training Results")
+        for name, value in metrics.items():
+            print(f"{name.replace('_', ' ').title()}: {value:.4f}")
+        print(f"Required F1 Score: {F1_THRESHOLD:.4f}")
 
-    # 10. Validate the model
-    if f1 >= F1_THRESHOLD:
-
-        print("\nVALIDATION PASSED")
+        if metrics["f1_score"] < F1_THRESHOLD:
+            mlflow.set_tag("validation_status", "FAILED")
+            raise RuntimeError(
+                f"F1 score {metrics['f1_score']:.4f} is below the required threshold {F1_THRESHOLD:.4f}."
+            )
 
         mlflow.set_tag("validation_status", "PASSED")
+        MODEL_PATH.parent.mkdir(exist_ok=True)
+        joblib.dump(pipeline, MODEL_PATH)
+        mlflow.sklearn.log_model(pipeline, name="churn_model")
+        print(f"\nVALIDATION PASSED\nModel saved: {MODEL_PATH}")
 
-        # Save the model locally for the API
-        os.makedirs("models", exist_ok=True)
-        joblib.dump(pipeline, "models/churn_model.pkl")
 
-        print("Local model saved: models/churn_model.pkl")
-
-        # Log the model as an MLflow artifact
-        mlflow.sklearn.log_model(
-    pipeline,
-    name="churn_model",
-    skops_trusted_types=["sklearn.tree._tree.Tree"],
-)
-        print("Model logged to MLflow successfully.")
-
-    else:
-        mlflow.set_tag("validation_status", "FAILED")
-
-        print("\nVALIDATION FAILED")
-        print("Model did not meet the required F1 threshold.")
-
-        raise RuntimeError(
-            f"F1 score {f1:.4f} is below "
-            f"the required threshold {F1_THRESHOLD:.4f}."
-        )
-
-print("\nTraining and validation completed successfully.")
+if __name__ == "__main__":
+    main()

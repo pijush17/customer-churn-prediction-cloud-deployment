@@ -1,48 +1,57 @@
+"""FastAPI service for customer churn predictions."""
 
-from fastapi import FastAPI
-import pandas as pd
+from pathlib import Path
+
 import joblib
+import pandas as pd
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+
+MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "churn_model.pkl"
 
 app = FastAPI(
     title="Customer Churn Prediction API",
     description="MLflow MLOps Assignment Deployment",
-    version="1.0"
+    version="1.0.0",
 )
 
-model = joblib.load("models/churn_model.pkl")
+
+class ChurnRequest(BaseModel):
+    tenure: int = Field(ge=0)
+    monthly_charges: float = Field(ge=0)
+    total_charges: float = Field(ge=0)
+    contract_type: str
+    internet_service: str
+    tech_support: str
+
+
+def load_model():
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(f"Model not found at {MODEL_PATH}. Run `python src/train.py` first.")
+    return joblib.load(MODEL_PATH)
+
+
+model = load_model()
 
 
 @app.get("/")
-def home():
-    return {
-        "project": "Customer Churn Prediction",
-        "status": "running"
-    }
+def home() -> dict[str, str]:
+    return {"project": "Customer Churn Prediction", "status": "running"}
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "healthy"}
 
 
 @app.post("/predict")
-def predict(
-    tenure: int,
-    monthly_charges: float,
-    total_charges: float,
-    contract_type: str,
-    internet_service: str,
-    tech_support: str
-):
-    data = pd.DataFrame([{
-        "tenure": tenure,
-        "monthly_charges": monthly_charges,
-        "total_charges": total_charges,
-        "contract_type": contract_type,
-        "internet_service": internet_service,
-        "tech_support": tech_support
-    }])
-
-    prediction = model.predict(data)[0]
-
+def predict(request: ChurnRequest) -> dict[str, int | str]:
+    try:
+        prediction = model.predict(pd.DataFrame([request.model_dump()]))[0]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Prediction failed.") from exc
+    churn_prediction = int(prediction)
     return {
-        "churn_prediction": int(prediction),
-        "result": "Customer likely to churn"
-        if prediction == 1
-        else "Customer likely to stay"
+        "churn_prediction": churn_prediction,
+        "result": "Customer likely to churn" if churn_prediction == 1 else "Customer likely to stay",
     }
