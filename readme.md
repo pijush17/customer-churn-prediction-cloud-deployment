@@ -416,14 +416,6 @@ Inspect the failed job logs, identify the first actual error, correct it locally
 - Add monitoring for model performance and input drift.
 - Document verified results and deployment procedures.
 
-## Author
-
-**Pavan R.**
-
-B.E. in Data Science  
-T. John Institute of Technology, Bengaluru
-
-GitHub: https://github.com/pavan-r1
 
 ## License
 
