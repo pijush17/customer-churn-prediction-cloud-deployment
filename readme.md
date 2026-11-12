@@ -417,10 +417,4 @@ Inspect the failed job logs, identify the first actual error, correct it locally
 - Document verified results and deployment procedures.
 
 
-## License
 
-Add an appropriate license if you intend to distribute the project publicly. Until a license is included, do not assume that others have permission to reuse or redistribute the code.
-
----
-
-*This project is intended for educational and demonstration purposes. Results should be evaluated using the actual dataset, model, and validation procedure before being used in production.*
