@@ -2,7 +2,7 @@
 
 An end-to-end Machine Learning Operations (MLOps) project demonstrating machine learning model development, experiment tracking, model artifact management, testing, Docker containerization, and workflow automation.
 
-## Quick start
+## Quick start 
 
 ```powershell
 python -m pip install -r requirements.txt
